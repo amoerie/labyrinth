@@ -64,15 +64,27 @@ putTile board  (tile, pos) = replaceAtIndex index (Just tile) board
 startingLabyrinth :: UnfinishedBoard
 startingLabyrinth = foldl putTile emptyLabyrinth fixedTiles
 
-type FreeTiles = [XTile]
-freeTiles :: FreeTiles
+type XTiles = [XTile]
+freeTiles :: XTiles
 freeTiles = replicate 16 (XTile Corner Nothing)
   ++ replicate 6 (XTile TShape Nothing)
   ++ replicate 12 (XTile Line Nothing)
+
+type FreePositions = [Position]
+freePositions :: FreePositions
+freePositions = map indexToPosition
+  $ filter (`notElem` fixedIndex) [0..(labyrinthSize * labyrinthSize - 1)]
+  where fixedIndex = map (positionToIndex . snd) fixedTiles
 
 {-|
    Taking a free tile by index returns that free tile PLUS the remaining free tiles
    To achieve this, this function makes use of the State Monad
 -}
-takeFreeTile :: Int -> State FreeTiles XTile
+takeFreeTile :: Int -> State XTiles XTile
 takeFreeTile index = state $ \tiles -> (tiles!!index, deleteAtIndex index tiles)
+
+{-|
+   Taking a free position by index returns that position PLUS the remaining free positions
+-}
+takeFreePosition :: Int -> State [Position] Position
+takeFreePosition index = state $ \ps -> (ps!!index, deleteAtIndex index ps)
