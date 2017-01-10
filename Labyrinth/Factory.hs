@@ -1,17 +1,22 @@
-module Labyrinth.Game (
-  labyrinthSize
+module Labyrinth.Factory (
+  createNewBoard,
+  allColors,
+  allTreasures,
+  allStartingPositions,
+  isStartingPosition,
+  positionToIndex,
+  indexToPosition
 )
 where
 
 {-|
   The factory is responsible for starting a completely new game.
-  It draws a new board and distributes the free tiles randomly
+  It draws a new board and distributes the tiles and treasures
 -}
 
 import Labyrinth.Models
 import Labyrinth.Helpers
 
-import Control.Monad.State
 import Control.Arrow (second)
 import Data.List (sortBy)
 import Data.Ord (comparing)
@@ -76,13 +81,6 @@ poolOfFreePositions = map indexToPosition
   $ filter (`notElem` fixedIndex) [0..(labyrinthSize * labyrinthSize - 1)]
   where fixedIndex = map (positionToIndex . snd) fixedTiles
 
-shuffle :: [a] -> StdGen -> ([a], StdGen)
-shuffle []   generator = ([], generator)
-shuffle list generator = let (index,nextGenerator) = randomR (0,length list -1) generator
-                             (listUntilIndex, element:listAfterIndex) = splitAt index list
-                             (shuffledRest, lastGenerator) = shuffle (listUntilIndex ++ listAfterIndex) nextGenerator
-                         in  (element : shuffledRest, lastGenerator)
-
 {-|
  Takes a list of free tiles and returns a list of tiles with random directions
 -}
@@ -134,6 +132,7 @@ putTreasuresOnBoard (Board tiles) treasuresWithAssignedPositions = let
 distributeTreasures :: Board -> [Treasure] -> StdGen -> Board
 distributeTreasures board treasures generator = putTreasuresOnBoard board
   $ assignRandomPositionsToTreasures board treasures generator
+
 {-|
  Creates a completely new board by
   1. Adding a random direction to the pool of free tiles

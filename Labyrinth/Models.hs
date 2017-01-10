@@ -2,7 +2,7 @@ module Labyrinth.Models (
   labyrinthSize,
   Kind(..), Direction(..), Treasure, EmptyTile(..),
   FreeTile(..), Tile(..), Color(..), Control,
-  Position, Cards, Player, Board(..)
+  Position, Cards, Player(..), Board(..), Game(..)
 ) where
 
 import Labyrinth.Helpers
@@ -20,11 +20,12 @@ type Treasure = Maybe Int
 data EmptyTile = EmptyTile Kind Direction deriving(Eq)
 data FreeTile = FreeTile Kind Treasure deriving (Show, Eq)
 data Tile = Tile Kind Treasure Direction deriving (Eq)
-data Color = Yellow | Red | Blue | Green deriving (Eq, Bounded, Enum)
+data Color = Yellow | Red | Blue | Green deriving (Show, Eq, Bounded, Enum)
 data Control = Human | AI deriving (Eq)
 type Position = (Int, Int)
 type Cards = [Int]
 data Player = Player Color Control Position Cards deriving (Eq)
+data Game = Game [Player] FreeTile Board
 newtype Board = Board [Tile]
 
 instance Show EmptyTile
