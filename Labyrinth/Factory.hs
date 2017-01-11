@@ -5,7 +5,9 @@ module Labyrinth.Factory (
   allStartingPositions,
   isStartingPosition,
   positionToIndex,
-  indexToPosition
+  indexToPosition,
+  tileToFreeTile,
+  freeTileToTile
 )
 where
 
@@ -68,6 +70,12 @@ positionToIndex (x,y) = x * labyrinthSize + y
 
 indexToPosition :: Int -> Position
 indexToPosition index = (index `div` labyrinthSize, index `mod` labyrinthSize)
+
+tileToFreeTile :: Tile -> FreeTile
+tileToFreeTile (Tile kind treasure _) = FreeTile kind treasure
+
+freeTileToTile :: FreeTile -> Direction -> Tile
+freeTileToTile (FreeTile kind treasure) = Tile kind treasure
 
 type FreeTiles = [FreeTile]
 poolOfFreeTiles :: FreeTiles

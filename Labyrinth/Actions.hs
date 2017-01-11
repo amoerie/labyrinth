@@ -1,26 +1,36 @@
 module Labyrinth.Actions()
 where
 
+import Labyrinth.Helpers
 import Labyrinth.Models
+import Labyrinth.Factory
+import qualified Labyrinth.Board
 
-showBoard :: Game -> Player -> String
-showBoard (Game _ _ board) _ = show board
+showBoard :: Game -> String
+showBoard (Game _ _ board) = show board
 
-showFreeTile :: Game -> Player -> String
-showFreeTile (Game _ freeTile _) _ = show freeTile
+showFreeTile :: Game -> String
+showFreeTile (Game _ freeTile _) = show freeTile
 
-showPawns :: Game -> Player -> String
-showPawns (Game players _ _) _ = unlines $ map
-  (\(Player color _ position _) -> show color ++ show position)
+showPawns :: Game -> String
+showPawns (Game players _ _) = unlines $ map
+  (\(Player color _ position _) -> show color ++ ": " ++ show position)
   players
 
-showTreasureCards :: Game -> Player -> String
-showTreasureCards _ (Player _ _ _ cards) = show cards
+showTreasureCards :: Game -> String
+showTreasureCards (Game (Player _ _ _ cards:ps) _ _) = show cards
 
 showRemainingTreasureCardsOfPlayer :: Player -> String
-showRemainingTreasureCardsOfPlayer (Player _ _ _ cards) = (show . length) cards
+showRemainingTreasureCardsOfPlayer (Player color _ _ cards) = show color
+  ++ ": "
+  ++ (show . length) cards
 
-showRemainingTreasureCards :: Game -> Player -> String
-showRemainingTreasureCards (Game players _ _) player = unlines
-  $ map showRemainingTreasureCardsOfPlayer
-  $ filter (/= player) players
+showRemainingTreasureCards :: Game -> String
+showRemainingTreasureCards (Game players _ _) = unlines
+  $ map showRemainingTreasureCardsOfPlayer players
+
+insertFreeTile :: Game -> Labyrinth.Board.InsertionPoint -> Direction -> Game
+insertFreeTile (Game players freeTile board) insertionPoint direction = let
+  tile = freeTileToTile freeTile direction
+  (newBoard, newFreeTile) = Labyrinth.Board.insert board insertionPoint tile
+  in Game players newFreeTile newBoard
