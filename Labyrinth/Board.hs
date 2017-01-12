@@ -1,6 +1,7 @@
 module Labyrinth.Board (
   InsertionPoint(..),
-  insert
+  insert,
+  insertionPoints
 )
 where
 
@@ -92,3 +93,9 @@ insert :: Board -> InsertionPoint -> Tile -> (Board, FreeTile)
 insert board insertionPoint tile = (newBoard, tileToFreeTile extraTile)
   where affectedPositions = getAffectedPositions insertionPoint
         (newBoard, extraTile) = swapReduce board affectedPositions tile
+
+getNeighbours :: Position -> [Position]
+getNeighbours position = filter isValid $ map ($ position) [up,down,left,right]
+
+getReachablePositionsFrom :: Board -> Position -> [Position]
+getReachablePositionsFrom board position = []

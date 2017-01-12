@@ -102,3 +102,37 @@ instance Show Board where
   show (Board tiles)  = unlines
     $ map showRow
     $ chunksOf labyrinthSize tiles
+
+type Rotation = Direction -> Direction
+rotateClockWise :: Rotation
+rotateClockWise North = East
+rotateClockWise East  = South
+rotateClockWise South = West
+rotateClockWise West  = North
+
+applyRotations :: Direction -> [Rotation] -> Direction
+applyRotations = foldl (\dir rotation -> rotation dir)
+
+getRotations :: Direction -> Direction -> [Rotation]
+getRotations from to
+  | from == to  = []
+  | otherwise   = rotateClockWise : getRotations (rotateClockWise from) to
+
+-- Determines whether a tile has an opening on the side of the provided direction
+hasOpening :: Tile -> Direction -> Bool
+hasOpening (Tile Corner _ North) North = True
+hasOpening (Tile Corner _ North) East  = True
+hasOpening (Tile Corner _ North) South = False
+hasOpening (Tile Corner _ North) West  = False
+
+hasOpening (Tile TShape _ North) North = True
+hasOpening (Tile TShape _ North) East  = True
+hasOpening (Tile TShape _ North) South = False
+hasOpening (Tile TShape _ North) West  = True
+
+hasOpening (Tile Line _ North) North = True
+hasOpening (Tile Line _ North) East  = False
+hasOpening (Tile Line _ North) South = True
+hasOpening (Tile Line _ North) West  = False
+
+hasOpening (Tile kind t South) North  = hasOpening (Tile kind t North) South
