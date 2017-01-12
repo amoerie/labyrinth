@@ -14,21 +14,21 @@ data InsertionPoint = InsertionPoint Position Direction
 type Move = Position -> Position
 
 up :: Move
-up (x,y) = (x, y - 1)
+up (x,y) = (x - 1, y)
 
 down :: Move
-down (x,y) = (x, y + 1)
+down (x,y) = (x + 1, y)
 
 left :: Move
-left (x,y)  = (x - 1, y)
+left (x,y)  = (x, y - 1)
 
 right :: Move
-right (x,y) = (x + 1, y)
+right (x,y) = (x, y + 1)
 
-isValid :: Board -> Position -> Bool
-isValid (Board []) pos    = False
-isValid (Board tiles) pos = 0 <= index && index < length tiles
-  where index = positionToIndex pos
+isValid :: Position -> Bool
+isValid (row,column) = 0 <= row && row < labyrinthSize
+                    && 0 <= column && column < labyrinthSize
+
 
 insertionPoints :: [InsertionPoint]
 insertionPoints = [
@@ -57,16 +57,14 @@ directionToMove West  = left
 
 -- Returns an infinite list of positions that arise from applying the same move over and over
 repeatMove :: Position -> Move -> [Position]
-repeatMove pos move = newPos : repeatMove newPos move
-  where newPos = move pos
+repeatMove pos move = pos : repeatMove (move pos) move
 
 -- Returns - in order - the positions of the tiles that will be modified
 -- when a free tile is inserted at the provided insertion point
-getAffectedPositions :: Board -> InsertionPoint -> [Position]
-getAffectedPositions board (InsertionPoint pos direction) = takeWhile isValidOnBoard positions
+getAffectedPositions :: InsertionPoint -> [Position]
+getAffectedPositions (InsertionPoint pos direction) = takeWhile isValid positions
   where move = directionToMove direction
         positions = repeatMove pos move
-        isValidOnBoard = isValid board
 
 {-
   Swaps the tile on the board in the provided position
@@ -92,5 +90,5 @@ swapReduce board (p:ps) tile = let (newBoard, swappedTile) = swap board p tile
 -}
 insert :: Board -> InsertionPoint -> Tile -> (Board, FreeTile)
 insert board insertionPoint tile = (newBoard, tileToFreeTile extraTile)
-  where affectedPositions = getAffectedPositions board insertionPoint
+  where affectedPositions = getAffectedPositions insertionPoint
         (newBoard, extraTile) = swapReduce board affectedPositions tile
