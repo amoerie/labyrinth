@@ -1,9 +1,10 @@
 module Labyrinth.Models (
   labyrinthSize,
   Kind(..), Direction(..), Treasure, EmptyTile(..),
-  FreeTile(..), Tile(..), Color(..), Control,
-  Position, Cards, Player(..), Board(..), Game(..),
-  hasOpening, inverse
+  FreeTile(..), Tile(..), Color(..), Control(..),
+  Position(..), Cards, Player(..), Board(..), Game(..),
+  hasOpening, inverse, hasTreasure, treasureToChar,
+  intToTreasure
 ) where
 
 import Labyrinth.Helpers
@@ -11,21 +12,22 @@ import Prelude hiding (Right, Left)
 import Data.Char
 import Data.List.Split
 import System.Random
+import qualified Data.Maybe
 
 labyrinthSize :: Int
 labyrinthSize = 7
 
 data Kind = Corner | TShape | Line deriving (Show, Eq)
-data Direction = North | East | South | West deriving (Show, Eq, Bounded, Enum)
+data Direction = North | East | South | West deriving (Show, Eq, Bounded, Enum, Read)
 type Treasure = Maybe Int
 data EmptyTile = EmptyTile Kind Direction deriving(Eq)
-data FreeTile = FreeTile Kind Treasure deriving (Show, Eq)
+data FreeTile = FreeTile Kind Treasure deriving (Eq)
 data Tile = Tile Kind Treasure Direction deriving (Eq)
 data Color = Yellow | Red | Blue | Green deriving (Show, Eq, Bounded, Enum)
-data Control = Human | AI deriving (Eq)
+data Control = Human | AI deriving (Show, Eq)
 type Position = (Int, Int)
 type Cards = [Int]
-data Player = Player Color Control Position Cards deriving (Eq)
+data Player = Player Color Control Position Cards deriving (Show, Eq)
 data Game = Game [Player] FreeTile Board
 newtype Board = Board [Tile]
 
@@ -86,6 +88,9 @@ instance Show Tile where
   show (Tile kind treasure direction) = replaceAtIndex 8 treasureAsChar asEmptyTile
     where asEmptyTile = show (EmptyTile kind direction)
           treasureAsChar = treasureToChar treasure
+
+instance Show FreeTile where
+  show (FreeTile kind treasure) = show $ Tile kind treasure North
 
 instance Random Direction where
     random gen = case randomR (fromEnum (minBound :: Direction), fromEnum (maxBound :: Direction)) gen
@@ -152,3 +157,9 @@ hasOpening West  (Tile Line _ North)    = False
 hasOpening direction (Tile kind t tileDirection) = hasOpening rotatedDirection (Tile kind t North)
   where rotations = getRotations tileDirection North
         rotatedDirection = applyRotations direction rotations
+
+hasTreasure :: Tile -> Bool
+hasTreasure (Tile _ t _) = Data.Maybe.isJust t
+
+intToTreasure :: Int -> Treasure
+intToTreasure = Just

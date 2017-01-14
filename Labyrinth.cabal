@@ -20,6 +20,7 @@ executable Labyrinth
   -- other-modules:
   -- other-extensions:
   build-depends:       base >=4.9 && <4.10,
+                       process >= 1.4.2 && <= 1.4.3,
                        random >= 1.1 && < 1.2,
                        mtl >= 2.2 && < 2.3,
                        split >= 0.2 && < 0.3

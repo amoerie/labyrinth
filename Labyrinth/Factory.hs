@@ -1,5 +1,6 @@
 module Labyrinth.Factory (
   createNewBoard,
+  createNewGame,
   allColors,
   allTreasures,
   allStartingPositions,
@@ -20,7 +21,8 @@ import Labyrinth.Models
 import Labyrinth.Helpers
 
 import Control.Arrow (second)
-import Data.List (sortBy)
+import qualified Data.List (sortBy, zip4)
+import qualified Data.List.Split
 import Data.Ord (comparing)
 import System.Random
 
@@ -105,7 +107,7 @@ createTiles freeTiles generator = let (randomDirection, nextGenerator) = random 
 createBoard :: [(Tile,Position)] -> Board
 createBoard tilesWithAssignedPositions = Board
   $ map fst
-  $ sortBy (comparing snd)
+  $ Data.List.sortBy (comparing snd)
   $ map (second positionToIndex) (tilesWithAssignedPositions ++ fixedTiles)
 
 positionsThatCanHaveTreasures :: Board -> [Position]
@@ -129,7 +131,7 @@ putTreasuresOnBoard :: Board -> [(Treasure, Position)] -> Board
 putTreasuresOnBoard (Board tiles) treasuresWithAssignedPositions = let
   -- [Treasure]
   treasures = map fst
-    $ sortBy (comparing snd)
+    $ Data.List.sortBy (comparing snd)
     $ map (second positionToIndex) treasuresWithAssignedPositions
   -- Create a new board taking into account the assigned treasures
   newBoard = Board
@@ -137,8 +139,8 @@ putTreasuresOnBoard (Board tiles) treasuresWithAssignedPositions = let
     $ zip tiles treasures
   in newBoard
 
-distributeTreasures :: Board -> [Treasure] -> StdGen -> Board
-distributeTreasures board treasures generator = putTreasuresOnBoard board
+distributeTreasuresOnBoard :: Board -> [Treasure] -> StdGen -> Board
+distributeTreasuresOnBoard board treasures generator = putTreasuresOnBoard board
   $ assignRandomPositionsToTreasures board treasures generator
 
 {-|
@@ -156,5 +158,20 @@ createNewBoard generator = let
   -- Shuffle the pool of free positions and assign it to the shuffled tiles
   (shuffledPositions, generator3) = shuffle poolOfFreePositions generator2
   board = createBoard (zip shuffledTiles shuffledPositions)
-  boardWithTreasures = distributeTreasures board (map Just allTreasures) generator3
+  boardWithTreasures = distributeTreasuresOnBoard board (map Just allTreasures) generator3
   in (boardWithTreasures, extraTile)
+
+createPlayers :: Int -> StdGen -> ([Player], StdGen)
+createPlayers nrOfPlayers generator = (players, generator')
+  where (shuffledTreasures, generator') = shuffle allTreasures generator
+        colors                          = allColors
+        controls                        = replicate nrOfPlayers Human ++ replicate (4 - nrOfPlayers) AI
+        positions                       = map colorToStartingPosition allColors
+        treasures                       = Data.List.Split.chunksOf 6 shuffledTreasures
+        players                         = map (\(clr, ctrl, pos, crds) -> Player clr ctrl pos crds)
+                                              $ Data.List.zip4 colors controls positions treasures
+
+createNewGame :: Int -> StdGen -> Game
+createNewGame numberOfPlayers generator = Game players freeTile board
+  where (players, generator') = createPlayers numberOfPlayers generator
+        (board, freeTile) = createNewBoard generator'

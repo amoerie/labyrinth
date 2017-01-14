@@ -1,7 +1,13 @@
 module Labyrinth.Board (
   InsertionPoint(..),
+  isValid,
   insert,
-  insertionPoints
+  insertionPoints,
+  insertionPointIdentifiers,
+  identifierToInsertionPoint,
+  getTile,
+  getReachablePositions,
+  getReachableTreasures
 )
 where
 
@@ -51,6 +57,15 @@ insertionPoints = [
     InsertionPoint (6,3) North,
     InsertionPoint (6,5) North
   ]
+
+insertionPointIdentifiers :: [String]
+insertionPointIdentifiers = [ "North1", "North2", "North3", "East1", "East2", "East3", "West1", "West2", "West3", "South1", "South2", "South3"]
+
+identifierToInsertionPoint :: String -> InsertionPoint
+identifierToInsertionPoint identifier = case Data.List.elemIndex identifier insertionPointIdentifiers
+                                        of Just index -> insertionPoints !! index
+                                           Nothing    -> error "Unknown insertion point"
+
 
 directionToMove :: Direction -> Move
 directionToMove North = up
@@ -107,8 +122,7 @@ getAssociatedMove West    = left
 
 getNeighbours :: Position -> [(Direction, Position)]
 getNeighbours position = filter (isValid . snd)
-  $ map (Control.Arrow.second (\move -> move position))
-  $ map (\dir -> (dir, getAssociatedMove dir)) [North, East, South, West]
+  $ map (\dir -> (dir, getAssociatedMove dir position)) [North, East, South, West]
 
 canReachNeighbour :: Position -> Board -> (Direction, Position) -> Bool
 canReachNeighbour pos board (dir, neighbourPos) = hasOpening dir tile
@@ -129,4 +143,10 @@ getReachablePositionsFromTrail trail board = if null newReachableNeighbours
         newTrail = trail ++ newReachableNeighbours
 
 getReachablePositions :: Position -> Board -> [Position]
-getReachablePositions position board = getReachablePositionsFromTrail [position] board
+getReachablePositions position = getReachablePositionsFromTrail [position]
+
+getReachableTreasures :: Position -> Board -> [Treasure]
+getReachableTreasures position board = map (\(Tile _ t _) -> t)
+  $ filter hasTreasure
+  $ map (`getTile` board)
+  $ getReachablePositions position board
