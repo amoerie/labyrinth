@@ -2,7 +2,8 @@ module Labyrinth.Models (
   labyrinthSize,
   Kind(..), Direction(..), Treasure, EmptyTile(..),
   FreeTile(..), Tile(..), Color(..), Control,
-  Position, Cards, Player(..), Board(..), Game(..)
+  Position, Cards, Player(..), Board(..), Game(..),
+  hasOpening, inverse
 ) where
 
 import Labyrinth.Helpers
@@ -118,21 +119,36 @@ getRotations from to
   | from == to  = []
   | otherwise   = rotateClockWise : getRotations (rotateClockWise from) to
 
+inverse :: Direction -> Direction
+inverse North = South
+inverse East  = West
+inverse South = North
+inverse West  = East
+
 -- Determines whether a tile has an opening on the side of the provided direction
-hasOpening :: Tile -> Direction -> Bool
-hasOpening (Tile Corner _ North) North = True
-hasOpening (Tile Corner _ North) East  = True
-hasOpening (Tile Corner _ North) South = False
-hasOpening (Tile Corner _ North) West  = False
-
-hasOpening (Tile TShape _ North) North = True
-hasOpening (Tile TShape _ North) East  = True
-hasOpening (Tile TShape _ North) South = False
-hasOpening (Tile TShape _ North) West  = True
-
-hasOpening (Tile Line _ North) North = True
-hasOpening (Tile Line _ North) East  = False
-hasOpening (Tile Line _ North) South = True
-hasOpening (Tile Line _ North) West  = False
-
-hasOpening (Tile kind t South) North  = hasOpening (Tile kind t North) South
+hasOpening :: Direction -> Tile -> Bool
+-- predefined openings for the corner tile facing north
+hasOpening North (Tile Corner _ North)  = True
+hasOpening East  (Tile Corner _ North)  = True
+hasOpening South (Tile Corner _ North)  = False
+hasOpening West  (Tile Corner _ North)  = False
+-- predefined openings for the tshape tile facing north
+hasOpening North (Tile TShape _ North)  = True
+hasOpening East  (Tile TShape _ North)  = True
+hasOpening South (Tile TShape _ North)  = False
+hasOpening West  (Tile TShape _ North)  = True
+-- predefined openings for the line tile facing north
+hasOpening North (Tile Line _ North)    = True
+hasOpening East  (Tile Line _ North)    = False
+hasOpening South (Tile Line _ North)    = True
+hasOpening West  (Tile Line _ North)    = False
+-- We can compute if a tile has an opening for other sides than North
+-- by rotating the tile to the north
+-- For example, to determine if a Corner tile facing East has a South opening
+-- We can turn the tile to the North, which takes 3 clockwise rotations
+-- We then apply those same 3 rotations to 'South'
+-- So asking whether a Corner tile facing East has a South opening
+-- is equivalent to asking whether a Corner tile facing North has an East opening
+hasOpening direction (Tile kind t tileDirection) = hasOpening rotatedDirection (Tile kind t North)
+  where rotations = getRotations tileDirection North
+        rotatedDirection = applyRotations direction rotations

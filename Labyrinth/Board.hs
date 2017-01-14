@@ -10,6 +10,8 @@ import Data.List hiding (insert)
 import Labyrinth.Helpers
 import Labyrinth.Models
 import Labyrinth.Factory
+import qualified Control.Arrow
+import qualified Data.Foldable
 
 data InsertionPoint = InsertionPoint Position Direction
 type Move = Position -> Position
@@ -94,8 +96,37 @@ insert board insertionPoint tile = (newBoard, tileToFreeTile extraTile)
   where affectedPositions = getAffectedPositions insertionPoint
         (newBoard, extraTile) = swapReduce board affectedPositions tile
 
-getNeighbours :: Position -> [Position]
-getNeighbours position = filter isValid $ map ($ position) [up,down,left,right]
+getTile :: Position -> Board -> Tile
+getTile position (Board tiles) = tiles !! positionToIndex position
 
-getReachablePositionsFrom :: Board -> Position -> [Position]
-getReachablePositionsFrom board position = []
+getAssociatedMove :: Direction -> Move
+getAssociatedMove North   = up
+getAssociatedMove East    = right
+getAssociatedMove South   = down
+getAssociatedMove West    = left
+
+getNeighbours :: Position -> [(Direction, Position)]
+getNeighbours position = filter (isValid . snd)
+  $ map (Control.Arrow.second (\move -> move position))
+  $ map (\dir -> (dir, getAssociatedMove dir)) [North, East, South, West]
+
+canReachNeighbour :: Position -> Board -> (Direction, Position) -> Bool
+canReachNeighbour pos board (dir, neighbourPos) = hasOpening dir tile
+                                               && hasOpening (inverse dir) neighbour
+  where tile = getTile pos board
+        neighbour = getTile neighbourPos board
+
+getReachableNeighbours :: Position -> Board -> [Position]
+getReachableNeighbours position board = map snd
+  $ filter (canReachNeighbour position board)
+  $ getNeighbours position
+
+getReachablePositionsFromTrail :: [Position] -> Board -> [Position]
+getReachablePositionsFromTrail trail board = if null newReachableNeighbours
+                                             then trail
+                                             else getReachablePositionsFromTrail newTrail board
+  where newReachableNeighbours = Data.List.nub $ filter (`notElem` trail) $ Data.Foldable.foldMap (`getReachableNeighbours` board) trail
+        newTrail = trail ++ newReachableNeighbours
+
+getReachablePositions :: Position -> Board -> [Position]
+getReachablePositions position board = getReachablePositionsFromTrail [position] board
