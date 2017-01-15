@@ -1,13 +1,18 @@
 module Labyrinth.Board (
   InsertionPoint(..),
+  allPositions,
+  distanceBetween,
   isValid,
   insert,
   insertionPoints,
   insertionPointIdentifiers,
   identifierToInsertionPoint,
   getTile,
+  getAssociatedMove,
+  getAffectedPositions,
   getReachablePositions,
-  getReachableTreasures
+  getReachableTreasures,
+  getAllTreasures
 )
 where
 
@@ -19,7 +24,8 @@ import Labyrinth.Factory
 import qualified Control.Arrow
 import qualified Data.Foldable
 
-data InsertionPoint = InsertionPoint Position Direction
+data InsertionPoint = InsertionPoint Position Direction deriving (Eq)
+
 type Move = Position -> Position
 
 up :: Move
@@ -38,6 +44,11 @@ isValid :: Position -> Bool
 isValid (row,column) = 0 <= row && row < labyrinthSize
                     && 0 <= column && column < labyrinthSize
 
+allPositions :: [Position]
+allPositions = (,) <$> [0 .. (labyrinthSize - 1)] <*> [0 .. (labyrinthSize - 1)]
+
+distanceBetween :: Position -> Position -> Int
+distanceBetween (x1, y1) (x2, y2) = abs (x1 - x2) + abs (y1 - y2)
 
 insertionPoints :: [InsertionPoint]
 insertionPoints = [
@@ -66,6 +77,8 @@ identifierToInsertionPoint identifier = case Data.List.elemIndex identifier inse
                                         of Just index -> insertionPoints !! index
                                            Nothing    -> error "Unknown insertion point"
 
+getTreasure :: Tile -> Treasure
+getTreasure (Tile _ treasure _) = treasure
 
 directionToMove :: Direction -> Move
 directionToMove North = up
@@ -145,8 +158,13 @@ getReachablePositionsFromTrail trail board = if null newReachableNeighbours
 getReachablePositions :: Position -> Board -> [Position]
 getReachablePositions position = getReachablePositionsFromTrail [position]
 
-getReachableTreasures :: Position -> Board -> [Treasure]
-getReachableTreasures position board = map (\(Tile _ t _) -> t)
-  $ filter hasTreasure
-  $ map (`getTile` board)
-  $ getReachablePositions position board
+getReachableTreasures :: Position -> Board -> [(Treasure, Position)]
+getReachableTreasures position board = map (Control.Arrow.first getTreasure)
+  $ filter (hasTreasure . fst)
+  $ zip (map (`getTile` board) reachablePositions) reachablePositions
+  where reachablePositions = getReachablePositions position board
+
+getAllTreasures :: Board -> [(Treasure, Position)]
+getAllTreasures board = map (Control.Arrow.first getTreasure)
+  $ filter (hasTreasure . fst)
+  $ zip (map (`getTile` board) allPositions) allPositions
