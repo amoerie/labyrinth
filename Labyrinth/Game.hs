@@ -88,10 +88,11 @@ insertFreeTile insertionPoint direction game = Game players newFreeTile newBoard
         players = map (movePawnIfNecessary insertionPoint) (getPlayers game)
 
 doMovePawn :: Position -> Game -> Game
-doMovePawn position (Game (Player clr ctrl pos crds:ps) freeTile board) = Game (ps ++ [player]) freeTile board
+doMovePawn position (Game (Player clr ctrl pos crds:ps) freeTile board) = Game (ps ++ [player]) freeTile boardWithoutTreasure
   where (Tile _ treasure _) = Labyrinth.Board.getTile position board
-        remainingCards = if Data.Maybe.isJust treasure then filter (Data.Maybe.fromJust treasure ==) crds else crds
+        remainingCards = if Data.Maybe.isJust treasure then filter (Data.Maybe.fromJust treasure /=) crds else crds
         player = Player clr ctrl position remainingCards
+        boardWithoutTreasure = Labyrinth.Board.removeTreasure treasure board
 
 movePawn :: Position -> Game -> Game
 movePawn position (Game (Player clr ctrl pos crds:ps) freeTile board)

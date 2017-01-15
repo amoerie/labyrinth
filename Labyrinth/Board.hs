@@ -12,7 +12,8 @@ module Labyrinth.Board (
   getAffectedPositions,
   getReachablePositions,
   getReachableTreasures,
-  getAllTreasures
+  getAllTreasures,
+  removeTreasure
 )
 where
 
@@ -24,7 +25,7 @@ import Labyrinth.Factory
 import qualified Control.Arrow
 import qualified Data.Foldable
 
-data InsertionPoint = InsertionPoint Position Direction deriving (Eq)
+data InsertionPoint = InsertionPoint Position Direction deriving (Eq, Show)
 
 type Move = Position -> Position
 
@@ -70,7 +71,7 @@ insertionPoints = [
   ]
 
 insertionPointIdentifiers :: [String]
-insertionPointIdentifiers = [ "North1", "North2", "North3", "East1", "East2", "East3", "West1", "West2", "West3", "South1", "South2", "South3"]
+insertionPointIdentifiers = [ "North1", "North2", "North3", "West1", "West2", "West3", "East1", "East2", "East3", "South1", "South2", "South3"]
 
 identifierToInsertionPoint :: String -> InsertionPoint
 identifierToInsertionPoint identifier = case Data.List.elemIndex identifier insertionPointIdentifiers
@@ -168,3 +169,13 @@ getAllTreasures :: Board -> [(Treasure, Position)]
 getAllTreasures board = map (Control.Arrow.first getTreasure)
   $ filter (hasTreasure . fst)
   $ zip (map (`getTile` board) allPositions) allPositions
+
+removeTreasureFromTile :: Treasure -> Tile -> Tile
+removeTreasureFromTile Nothing  tile         = tile
+removeTreasureFromTile treasure (Tile k t d)
+  | treasure == t = Tile k Nothing d
+  | otherwise     = Tile k t d
+
+removeTreasure :: Treasure -> Board -> Board
+removeTreasure Nothing  board = board
+removeTreasure treasure (Board tiles) = Board $ map (removeTreasureFromTile treasure) tiles
