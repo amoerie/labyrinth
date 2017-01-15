@@ -9,8 +9,8 @@ import qualified System.Process
 
 import Labyrinth.Models
 import qualified Labyrinth.Board
-import Labyrinth.Helpers
-import Labyrinth.Factory
+import qualified Labyrinth.Factory
+import qualified Labyrinth.Writer
 
 getCurrentPlayer :: Game -> Player
 getCurrentPlayer (Game (p:ps) _ _) = p
@@ -83,7 +83,7 @@ movePawnIfNecessary (Labyrinth.Board.InsertionPoint pos dir) player
 
 insertFreeTile :: Labyrinth.Board.InsertionPoint -> Direction -> Game -> Game
 insertFreeTile insertionPoint direction game = Game players newFreeTile newBoard
-  where tile = freeTileToTile (getFreeTile game) direction
+  where tile = Labyrinth.Factory.freeTileToTile (getFreeTile game) direction
         (newBoard, newFreeTile) = Labyrinth.Board.insert (getBoard game) insertionPoint tile
         players = map (movePawnIfNecessary insertionPoint) (getPlayers game)
 
@@ -188,21 +188,14 @@ takeAITurn game = do
   putStrLn $ showBoard gameAfterMove
   takeTurn gameAfterMove
 
-takeHumanTurn :: Game -> IO()
-takeHumanTurn game = do
-  System.Process.callCommand "cls"
-  putStrLn $ showBoard game
-  putStrLn $ "Your color      : " ++ (show . getColor . getCurrentPlayer) game
-  putStrLn $ "Your cards      : " ++ showTreasureCards game
-  putStrLn "All pawns       : "
-  putStrLn $ showPawns game
-  putStrLn "Remaining cards : "
-  putStrLn $ showRemainingTreasureCards game
-  putStrLn "Free tile       : "
-  putStrLn $ showFreeTile game
-  putStrLn "Where should the the free tile be inserted?"
-  putStrLn $ "Options: [" ++ Data.List.intercalate ", " (getAllowedInsertionPointIdentifiers game) ++ "]"
-  insertionPointIdentifier <- getLine
+humanTurnSaveAndExit :: Game -> IO()
+humanTurnSaveAndExit game = do
+  let serialized = Labyrinth.Writer.writeLabyrinth game
+  writeFile "game.txt" serialized
+  return ()
+
+humanTurnKeepPlaying :: String -> Game -> IO()
+humanTurnKeepPlaying insertionPointIdentifier game = do
   let insertionPoint = Labyrinth.Board.identifierToInsertionPoint insertionPointIdentifier
   putStrLn "How should the free tile be oriented?"
   putStrLn "Options: [North, East, South, West]"
@@ -220,6 +213,26 @@ takeHumanTurn game = do
   let gameAfterMove = movePawn position gameAfterInsert
   putStrLn $ "Remaining cards : " ++ showRemainingTreasureCards gameAfterMove
   takeTurn gameAfterMove
+
+takeHumanTurn :: Game -> IO()
+takeHumanTurn game = do
+  System.Process.callCommand "cls"
+  putStrLn $ showBoard game
+  putStrLn $ "Your color      : " ++ (show . getColor . getCurrentPlayer) game
+  putStrLn $ "Your cards      : " ++ showTreasureCards game
+  putStrLn "All pawns       : "
+  putStrLn $ showPawns game
+  putStrLn "Remaining cards : "
+  putStrLn $ showRemainingTreasureCards game
+  putStrLn "Free tile       : "
+  putStrLn $ showFreeTile game
+  putStrLn "Where should the the free tile be inserted?"
+  putStrLn $ "Options: [" ++ Data.List.intercalate ", " (getAllowedInsertionPointIdentifiers game) ++ "]"
+  putStrLn "Optionally, type SAVE to save the game and quit"
+  command <- getLine
+  if command == "SAVE"
+  then humanTurnSaveAndExit game
+  else humanTurnKeepPlaying command game
 
 showWinner :: Player -> IO()
 showWinner (Player color control _ _) = do

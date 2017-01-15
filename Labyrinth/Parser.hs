@@ -1,7 +1,8 @@
-module Labyrinth.Parser (Parser, apply, fromRead, sat, char, string, some, many, orelse, oneof, blank, keyword, token, allof) where
+module Labyrinth.Parser (apply, labyrinth) where
 
 import qualified Data.Char
 import qualified Control.Monad
+import Labyrinth.Models
 
 newtype Parser a = P (String -> [(a,String)])
 
@@ -87,6 +88,11 @@ string :: String -> Parser ()
 string (c:cs) = char c >> string cs
 string [] = return ()
 
+-- Parse a natural
+natural :: Parser Int
+natural = do blank
+             digits <- some (sat Data.Char.isDigit)
+             return $ read digits
 -------------
 -- Helpers --
 -------------
@@ -102,3 +108,88 @@ keyword s = blank >> string s
 -- Eat blank then parse alphabetical characters
 token :: Parser String
 token = blank >> (some $ sat Data.Char.isAlpha)
+
+-----------------------
+-- Labyrinth Parsers --
+-----------------------
+
+labyrinth :: Parser Game
+labyrinth = do
+  ps <- players
+  ft <- freeTile
+  brd <- board
+  return $ Game ps ft brd
+
+players :: Parser [Player]
+players = many player
+
+player :: Parser Player
+player = do
+  clr <- color
+  ctrl <- control
+  pos <- position
+  crds <- cards
+  return $ Player clr ctrl pos crds
+
+color :: Parser Color
+color = oneof [
+  keyword "yellow" >> return Yellow,
+  keyword "red"    >> return Red,
+  keyword "blue"   >> return Blue,
+  keyword "green"  >> return Green
+  ]
+
+control :: Parser Control
+control = oneof [
+  keyword "human" >> return Human,
+  keyword "ai"    >> return AI
+  ]
+
+position :: Parser Position
+position = do
+  x <- natural
+  y <- natural
+  return (x,y)
+
+cards :: Parser Cards
+cards = many natural
+
+board :: Parser Board
+board = do
+  ts <- tiles
+  return $ Board ts
+
+tiles :: Parser [Tile]
+tiles = many tile
+
+tile :: Parser Tile
+tile = do
+  k <- kind
+  t <- treasure
+  d <- direction
+  return $ Tile k t d
+
+freeTile :: Parser FreeTile
+freeTile = do
+  k <- kind
+  t <- treasure
+  return $ FreeTile k t
+
+treasure :: Parser Treasure
+treasure = orelse (do
+                     number <- natural
+                     return $ Just number)
+                  (return Nothing)
+
+kind :: Parser Kind
+kind = oneof [
+  keyword "corner" >> return Corner,
+  keyword "tshape" >> return TShape,
+  keyword "line"   >> return Line]
+
+direction :: Parser Direction
+direction = oneof [
+  keyword "north" >> return North,
+  keyword "south" >> return South,
+  keyword "west"  >> return West,
+  keyword "east"  >> return East]
