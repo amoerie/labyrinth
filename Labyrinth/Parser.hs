@@ -41,7 +41,7 @@ allof ps = P (\s -> concat $ map (\p -> apply p s) ps)
 
 -- Try the first parser, in case of failure use the second parser
 orelse :: Parser a -> Parser a -> Parser a
-orelse p1 p2 = P (\s -> if null (apply p1 s) then apply p2 s else apply p1 s)
+orelse p1 p2 = P (\s -> let result1 = apply p1 s in if null result1 then apply p2 s else result1)
 
 -- Idem orelse but on a list of parser
 oneof :: [Parser a] -> Parser a
